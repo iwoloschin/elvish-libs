@@ -14,11 +14,25 @@
 #
 
 use re
+use github.com/zzamboni/elvish-modules/semver
+
+git-version = (re:replace 'git version ' '' (git --version))
+git-status-cmd = ''
 
 # You can configure the status command here - only change if you know
 # what you are doing. The command must produce output in Porcelain v2
 # format. See https://git-scm.com/docs/git-status for details
-git-status-cmd = { git --no-optional-locks status --porcelain=v2 --branch --ignore-submodules=all 2>/dev/null }
+if (semver:> $git-version '2.15.0') {
+  # Git version 2.15.0 introduced the --no-optional-locks flag, which
+  # is not required, but may help reduce unnecessary writes to the
+  # index and speed up the prompt
+  git-status-cmd = { git --no-optional-locks status --porcelain=v2 --branch --ignore-submodules=all 2>/dev/null }
+} elif (semver:> $git-version '2.13.2') {
+  # Git version 2.13.2 introduced the Porcelain v2 format
+  git-status-cmd = { git status --porcelain=v2 --branch --ignore-submodules=all 2>/dev/null }
+} else {
+  echo (edit:styled "github.com/muesli/elvish-libs/git requires git version 2.13.2 or greater." "38;5;196;48;5;232")
+}
 
 # Switch statement to make the code in `status` simpler
 fn -switch [a b]{
